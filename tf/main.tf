@@ -1,5 +1,5 @@
 resource "proxmox_lxc" "wg" {
-  provider = proxmox_telmate.telmate
+  provider = proxmox-telmate.telmate
   target_node  = "pve"
   hostname     = "wg"
   ostemplate   = proxmox_virtual_environment_download_file.fedora_cloud_image.id
@@ -27,25 +27,23 @@ resource "proxmox_lxc" "wg" {
 
   onboot = true
 
-  ssh_public_keys = [
-    file("~/.ssh/id_rsa.pub")
-  ]
+  # ssh_public_keys = file("~/.ssh/id_rsa.pub") // Cloud-init handles this
 
   cicustom = "user=local:snippets/wg-init.yaml"
 
 }
 
 resource "proxmox_virtual_environment_download_file" "fedora_cloud_image" {
-  provider = proxmox_bgp.bpg
+  provider = proxmox-bgp.bpg
   content_type="import"
   datastore_id="local"
   node_name="pve"
-  url=fedora_root_fs_image_url
-  filename="fedora-42-cloud_20250916_amd64.tar.xz"
+  url=var.fedora_root_fs_image_url
+  file_name="fedora-42-cloud_20250916_amd64.tar.xz"
 }
 
 resource "proxmox_virtual_environment_file" "cloud_init_config" {
-  provider = proxmox_bgp.bpg
+  provider = proxmox-bgp.bpg
   content_type = "snippets"
   datastore_id = "local"
   node_name    = "pve"

@@ -1,10 +1,10 @@
 terraform {
   required_providers {
-    proxmox_bgp = {
+    proxmox-bgp = {
       source  = "bpg/proxmox"
       version = "0.83.2"
     }
-    proxmox_telmate = {
+    proxmox-telmate = {
       source  = "Telmate/proxmox"
       version = "3.0.2-rc04"
     }
@@ -12,7 +12,7 @@ terraform {
 }
 
 # BPG Proxmox Provider
-provider "proxmox_bgp" {
+provider "proxmox-bgp" {
   alias    = "bpg"
   endpoint = "https://${var.pm_fqdn}/api2/json"
   api_token = "${var.pm_api_token_id}=${var.pm_api_token_secret}"
@@ -20,7 +20,7 @@ provider "proxmox_bgp" {
 }
 
 # Telmate Proxmox Provider
-provider "proxmox_telmate" {
+provider "proxmox-telmate" {
   alias              = "telmate"
   pm_api_url         = "https://${var.pm_fqdn}/api2/json"
   pm_api_token_id    = var.pm_api_token_id

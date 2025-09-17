@@ -6,4 +6,20 @@ users:
     shell: /bin/bash
     lock_passwd: false
     ssh_import_id: 
-      -  gh:ajdj
+      - gh:ajdj
+
+# Packages and updates
+package_update: true
+package_upgrade: true
+packages:
+  - git
+  - python3-pip
+  - wireguard
+  - wireguard-tools
+  - ufw
+
+# Install Ansible & WG playbook
+ansible:
+  install_method: pip
+  pull:
+    - url
