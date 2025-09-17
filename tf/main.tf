@@ -1,14 +1,21 @@
 resource "proxmox_lxc" "wg" {
   provider = proxmox-telmate.telmate
+
+  depends_on = [
+    proxmox_virtual_environment_file.cloud_init_config,
+    proxmox_virtual_environment_download_file.fedora_cloud_image,
+    proxmox_virtual_environment_file.startup_hook
+  ]
+
   target_node  = "pve"
   hostname     = "wg"
-  ostemplate   = proxmox_virtual_environment_download_file.fedora_cloud_image.id
-#   password     = // Using ssh keys
+  ostemplate   = "${var.pm_datastore}:vztmpl/${var.fedora_root_fs_image_name}" 
+  #   password     = // Using ssh keys
   unprivileged = true
 
   // Terraform will crash without rootfs defined
   rootfs {
-    storage = "local-zfs"
+    storage = var.pm_datastore
     size    = "8G"
   }
 
@@ -27,28 +34,58 @@ resource "proxmox_lxc" "wg" {
 
   onboot = true
 
-  # ssh_public_keys = file("~/.ssh/id_rsa.pub") // Cloud-init handles this
+  ssh_public_keys = trimspace(data.http.github_ssh_keys.response_body)
 
-  cicustom = "user=local:snippets/wg-init.yaml"
+  hookscript = "${var.pm_datastore}:snippets/wg-startup-hook.sh"
 
 }
 
 resource "proxmox_virtual_environment_download_file" "fedora_cloud_image" {
   provider = proxmox-bgp.bpg
-  content_type="import"
-  datastore_id="local"
+  content_type="vztmpl"
+  datastore_id=var.pm_datastore
   node_name="pve"
   url=var.fedora_root_fs_image_url
-  file_name="fedora-42-cloud_20250916_amd64.tar.xz"
+  file_name=var.fedora_root_fs_image_name
 }
 
 resource "proxmox_virtual_environment_file" "cloud_init_config" {
   provider = proxmox-bgp.bpg
   content_type = "snippets"
-  datastore_id = "local"
+  datastore_id = var.pm_datastore
   node_name    = "pve"
 
   source_file {
-    path = "wg-init.yaml"
+    path = "../wg-init.yaml"
   }
+}
+
+resource "proxmox_virtual_environment_file" "startup_hook" {
+  provider     = proxmox-bgp.bpg
+  content_type = "snippets"
+  datastore_id = var.pm_datastore
+  node_name    = "pve"
+  
+  source_raw {
+    data = <<-EOT
+      #!/bin/bash
+      if [ "$1" = "post-start" ]; then
+        sleep 2
+        # Copy cloud-init config
+        pct exec $2 -- mkdir -p /var/lib/cloud/seed/nocloud-net
+        pct push $2 /var/lib/vz/snippets/${proxmox_virtual_environment_file.cloud_init_config.file_name} /var/lib/cloud/seed/nocloud-net/user-data
+        
+        # Apply CI
+        pct exec $2 -- cloud-init clean
+        pct exec $2 -- cloud-init init
+        pct exec $2 -- cloud-init modules --mode=config
+        pct exec $2 -- cloud-init modules --mode=final
+      fi
+    EOT
+    file_name = "wg-startup-hook.sh"
+  }
+}
+
+data "http" "github_ssh_keys" {
+  url = "https://github.com/${var.github_username}.keys"
 }
