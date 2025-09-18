@@ -28,4 +28,5 @@ jobs:
       - name: Decrypt secrets
         run: |
           sops --decrypt --in-place tf/environments/prod.tfvars
-          # terraform apply -var-file="tf/environments/prod.tfvars"
+          terraform -chdir=tf validate
+          # terraform -chdir=tf plan apply -var-file=environments/prod.tfvars
