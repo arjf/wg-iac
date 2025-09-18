@@ -17,7 +17,8 @@ jobs:
           curl -fsSL -o sops "$SOPS_URL"
           chmod +x sops
           sudo mv sops /usr/local/bin/
-
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
       - name: Checkout code
         uses: actions/checkout@v3
 
