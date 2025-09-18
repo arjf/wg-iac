@@ -8,6 +8,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Install latest SOPS
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq curl
+          # Fetch the latest release download URL for linux amd64
+          SOPS_URL=$(curl -s https://api.github.com/repos/getsops/sops/releases/latest \
+            | jq -r '.assets[] | select(.name | test("sops-.*.linux.amd64$")) | .browser_download_url')
+          curl -fsSL -o sops "$SOPS_URL"
+          chmod +x sops
+          sudo mv sops /usr/local/bin/
+
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -19,4 +29,3 @@ jobs:
         run: |
           sops --decrypt --in-place tf/environments/prod.tfvars
           # terraform apply -var-file="tf/environments/prod.tfvars"
-
