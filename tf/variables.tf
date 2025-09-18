@@ -9,9 +9,9 @@ variable pm_api_token_secret{
     type = string
     sensitive = true
 }
-variable "fedora_root_fs_image_url" {
+variable "root_fs_image_url" {
     type = string 
-    default = "https://images.linuxcontainers.org/images/fedora/42/amd64/cloud/20250916_20:57/rootfs.tar.xz"
+    default = "https://cloud-images.ubuntu.com/releases/jammy/release/ubuntu-22.04-server-cloudimg-amd64-root.tar.xz"
 } 
 
 variable "pm_datastore" {
@@ -19,9 +19,9 @@ variable "pm_datastore" {
     default = "local"   
 }
 
-variable "fedora_root_fs_image_name" {
+variable "root_fs_image_name" {
     type = string
-    default = "fedora-42-cloud_20250916_amd64.tar.xz"
+    default = "ubuntu-22.04-server-cloudimg-amd64-root.tar.xz"
 }
 
 variable "github_username" {

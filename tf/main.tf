@@ -3,13 +3,13 @@ resource "proxmox_lxc" "wg" {
 
   depends_on = [
     proxmox_virtual_environment_file.cloud_init_config,
-    proxmox_virtual_environment_download_file.fedora_cloud_image,
+    proxmox_virtual_environment_download_file.cloud_image,
     proxmox_virtual_environment_file.startup_hook
   ]
 
   target_node  = "pve"
   hostname     = "wg"
-  ostemplate   = "${var.pm_datastore}:vztmpl/${var.fedora_root_fs_image_name}" 
+  ostemplate   = "${var.pm_datastore}:vztmpl/${var.root_fs_image_name}" 
   #   password     = // Using ssh keys
   unprivileged = true
 
@@ -40,13 +40,13 @@ resource "proxmox_lxc" "wg" {
 
 }
 
-resource "proxmox_virtual_environment_download_file" "fedora_cloud_image" {
+resource "proxmox_virtual_environment_download_file" "cloud_image" {
   provider = proxmox-bgp.bpg
   content_type="vztmpl"
   datastore_id=var.pm_datastore
   node_name="pve"
-  url=var.fedora_root_fs_image_url
-  file_name=var.fedora_root_fs_image_name
+  url=var.root_fs_image_url
+  file_name=var.root_fs_image_name
 }
 
 resource "proxmox_virtual_environment_file" "cloud_init_config" {
