@@ -1,14 +1,13 @@
 variable pm_api_token_id {
     type = string
-    default = ""
+    sensitive = true
 }
 variable pm_fqdn {
     type = string
-    default = ""
 }
 variable pm_api_token_secret{
     type = string
-    default = ""
+    sensitive = true
 }
 variable "fedora_root_fs_image_url" {
     type = string 

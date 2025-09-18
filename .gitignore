@@ -10,7 +10,6 @@
 crash.log
 
 # Variable files (if they contain sensitive data)
-*.tfvars
 *.tfvars.json
 
 # Override files
@@ -26,3 +25,4 @@ terraform.rc
 # Ansible temp files
 *.retry
 *.log
+*.pub

@@ -1,0 +1,22 @@
+name: Deploy
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Import PGP key
+        run: |
+          echo "${{ secrets.PGP_PRIVATE_KEY }}" | gpg --import
+
+      - name: Decrypt secrets
+        run: |
+          sops --decrypt --in-place tf/environments/prod.tfvars
+          # terraform apply -var-file="tf/environments/prod.tfvars"
+
