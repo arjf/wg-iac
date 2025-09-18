@@ -1,0 +1,37 @@
+---
+- name: Setup wireguard in a lxc
+  hosts: lxc
+  remote_user: ansible
+
+  tasks:
+    - name: Ensure UFW default policies are set
+      ufw:
+        direction: "{{ item.direction }}"
+        policy: "{{ item.policy }}"
+      with_items:
+        - { direction: 'incoming', policy: 'deny' } 
+        - { direction: 'outgoing', policy: 'allow' }
+    
+    - name: Setup UFW rules for WireGuard
+      ufw:
+        rule: allow
+        name: "{{ item }}"
+        port: 51820
+        proto: udp
+        src: any
+    
+    - name: SSH over v4
+      ufw:
+        rule: allow
+        name: OpenSSH
+        port: 22
+        proto: tcp
+        src: "0.0.0.0/0"
+
+    - name: Enable and reload UFW
+      ufw:
+        state: enabled
+        reload: yes
+
+  
+
