@@ -1,6 +1,6 @@
 ---
 - name: Setup wireguard in a lxc
-  hosts: lxc
+  hosts: localhost
   remote_user: ansible
 
   tasks:
