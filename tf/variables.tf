@@ -20,6 +20,16 @@ variable "pm_node" {
   sensitive = true
 }
 
+variable "pm_ssh_key" {
+  type = string
+  sensitive = true
+}
+
+variable "pm_ssh_user" {
+  type = string
+  sensitive = true
+}
+
 variable "root_fs_image_url" {
   type    = string
   default = "https://cloud-images.ubuntu.com/releases/jammy/release/ubuntu-22.04-server-cloudimg-amd64-root.tar.xz"
