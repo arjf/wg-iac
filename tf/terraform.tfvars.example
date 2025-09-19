@@ -1,4 +1,6 @@
 pm_api_token_id = ""
+pm_user_realm = ""
 pm_api_token_secret = "
 pm_fqdn = ""
+pm_node = ""
 github_username = ""

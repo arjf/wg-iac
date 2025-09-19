@@ -7,7 +7,7 @@ resource "proxmox_lxc" "wg" {
     proxmox_virtual_environment_file.startup_hook
   ]
 
-  target_node = "proxmox"
+  target_node = var.pm_node
   hostname    = "wg"
   ostemplate  = "${var.pm_datastore}:vztmpl/${var.root_fs_image_name}"
   #   password     = // Using ssh keys
@@ -44,7 +44,7 @@ resource "proxmox_virtual_environment_download_file" "cloud_image" {
   provider     = proxmox-bgp.bpg
   content_type = "vztmpl"
   datastore_id = var.pm_datastore
-  node_name    = "proxmox"
+  node_name    = var.pm_node
   url          = var.root_fs_image_url
   file_name    = var.root_fs_image_name
 }
@@ -53,7 +53,7 @@ resource "proxmox_virtual_environment_file" "cloud_init_config" {
   provider     = proxmox-bgp.bpg
   content_type = "snippets"
   datastore_id = var.pm_datastore
-  node_name    = "proxmox"
+  node_name    = var.pm_node
 
   source_file {
     path = "../wg-init.yaml"
@@ -64,7 +64,7 @@ resource "proxmox_virtual_environment_file" "startup_hook" {
   provider     = proxmox-bgp.bpg
   content_type = "snippets"
   datastore_id = var.pm_datastore
-  node_name    = "proxmox"
+  node_name    = var.pm_node
 
   source_raw {
     data      = <<-EOT
