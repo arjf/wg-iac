@@ -7,9 +7,9 @@ resource "proxmox_lxc" "wg" {
     proxmox_virtual_environment_file.startup_hook
   ]
 
-  target_node  = "pve"
-  hostname     = "wg"
-  ostemplate   = "${var.pm_datastore}:vztmpl/${var.root_fs_image_name}" 
+  target_node = "pve"
+  hostname    = "wg"
+  ostemplate  = "${var.pm_datastore}:vztmpl/${var.root_fs_image_name}"
   #   password     = // Using ssh keys
   unprivileged = true
 
@@ -27,7 +27,7 @@ resource "proxmox_lxc" "wg" {
   }
 
   features {
-    nesting = true 
+    nesting = true
     fuse    = true
     mount   = "fuse"
   }
@@ -41,16 +41,16 @@ resource "proxmox_lxc" "wg" {
 }
 
 resource "proxmox_virtual_environment_download_file" "cloud_image" {
-  provider = proxmox-bgp.bpg
-  content_type="vztmpl"
-  datastore_id=var.pm_datastore
-  node_name="pve"
-  url=var.root_fs_image_url
-  file_name=var.root_fs_image_name
+  provider     = proxmox-bgp.bpg
+  content_type = "vztmpl"
+  datastore_id = var.pm_datastore
+  node_name    = "pve"
+  url          = var.root_fs_image_url
+  file_name    = var.root_fs_image_name
 }
 
 resource "proxmox_virtual_environment_file" "cloud_init_config" {
-  provider = proxmox-bgp.bpg
+  provider     = proxmox-bgp.bpg
   content_type = "snippets"
   datastore_id = var.pm_datastore
   node_name    = "pve"
@@ -65,9 +65,9 @@ resource "proxmox_virtual_environment_file" "startup_hook" {
   content_type = "snippets"
   datastore_id = var.pm_datastore
   node_name    = "pve"
-  
+
   source_raw {
-    data = <<-EOT
+    data      = <<-EOT
       #!/bin/bash
       if [ "$1" = "post-start" ]; then
         sleep 2

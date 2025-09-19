@@ -15,6 +15,7 @@ users:
     groups: users,admin,wheel,lxd
     sudo: "ALL=(ALL) NOPASSWD:ALL"
     ssh_import_id: 
+      - gh:ajdj
 
 # Packages and updates
 package_update: true

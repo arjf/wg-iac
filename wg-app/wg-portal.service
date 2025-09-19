@@ -1,0 +1,14 @@
+[Unit]
+Description=WireGuard Portal
+After=network.target
+
+[Service]
+ExecStart=/opt/wg-portal/wg-portal
+User=root
+Group=root
+Restart=always
+RestartSec=3
+WorkingDirectory=/opt/wg-portal
+
+[Install]
+WantedBy=multi-user.target

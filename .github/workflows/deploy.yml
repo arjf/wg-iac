@@ -28,9 +28,12 @@ jobs:
 
       - name: Decrypt secrets
         run: |
-          sops --decrypt --in-place tf/environments/prod.tfvars
+          sops -d -i "tf/environments/prod.tfvars"
+          sops -d -i "wg-app/config.yaml"
+          
       - name: Terraform Init & Validate
         run: |
           terraform -chdir=tf init
           terraform -chdir=tf validate
-          # terraform -chdir=tf plan apply -var-file=environments/prod.tfvars
+          terraform -chdir=tf plan -var-file=environments/prod.tfvars
+          terraform -chdir=tf apply -var-file=environments/prod.tfvars -auto-approve

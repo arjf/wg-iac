@@ -13,17 +13,17 @@ terraform {
 
 # BPG Proxmox Provider
 provider "proxmox-bgp" {
-  alias    = "bpg"
-  endpoint = "https://${var.pm_fqdn}/api2/json"
+  alias     = "bpg"
+  endpoint  = "https://${var.pm_fqdn}/api2/json"
   api_token = "${var.pm_api_token_id}=${var.pm_api_token_secret}"
-  insecure = true
+  insecure  = true
 }
 
 # Telmate Proxmox Provider
 provider "proxmox-telmate" {
-  alias              = "telmate"
-  pm_api_url         = "https://${var.pm_fqdn}/api2/json"
-  pm_api_token_id    = var.pm_api_token_id
+  alias               = "telmate"
+  pm_api_url          = "https://${var.pm_fqdn}/api2/json"
+  pm_api_token_id     = var.pm_api_token_id
   pm_api_token_secret = var.pm_api_token_secret
-  pm_tls_insecure    = true
+  pm_tls_insecure     = true
 }

@@ -28,10 +28,64 @@
         proto: tcp
         src: "0.0.0.0/0"
 
+    - name: wg-portal over v4
+      ufw:
+        rule: allow
+        name: wg-portal-web
+        port: 8080
+        proto: tcp
+        src: "0.0.0.0/0"
+
     - name: Enable and reload UFW
       ufw:
         state: enabled
         reload: yes
+    
+    - name: create wg-portal dirs 
+      file:
+        path:  "{{ item }}"
+        state: directory 
+        mode: '0755'
+        owner: root 
+        group: root 
+      loop:
+        - /opt/wg-portal
+        - /var/lib/wg-portal/data
+        - /etc/wireguard
+        - /opt/wg-portal/config
 
+    - name: Get wg-portal binary
+      get_url:
+        url: "https://github.com/h44z/wg-portal/releases/latest/download/wg-portal_linux_amd64"
+        dest: /opt/wg-portal/wg-portal
+        mode: '0755'
+        owner: root
+        group: root
   
+    - name: cp wg-portal config
+      copy: 
+        src: "../wg-app/config.yaml"
+        dest: /opt/wg-portal/config/config.yaml 
+        owner:  root
+        mode: '0600'
 
+    - name: Install systemd service 
+      copy:
+        src: "../wg-app/wg-portal.service"
+        dest: /etc/systemd/system/wg-portal.service
+        mode: '0644'
+        owner: root 
+      notify:
+        - reload systemd 
+        - start wg-portal
+    
+  handlers:
+    - name: reload systemd 
+      systemd:
+        daemon_reload: yes 
+    
+    - name: start wg-portal
+      systemd:
+        name: wg-portal 
+        state: started
+        enabled: yes
