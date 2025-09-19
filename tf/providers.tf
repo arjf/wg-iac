@@ -15,7 +15,7 @@ terraform {
 provider "proxmox-bgp" {
   alias     = "bpg"
   endpoint  = "https://${var.pm_fqdn}/api2/json"
-  api_token = "${var.pm_api_token_id}=${var.pm_api_token_secret}"
+  api_token = "${var.pm_user_realm}!${var.pm_api_token_id}=${var.pm_api_token_secret}"
   insecure  = true
 }
 

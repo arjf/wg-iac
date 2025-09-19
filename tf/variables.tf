@@ -9,6 +9,11 @@ variable "pm_api_token_secret" {
   type      = string
   sensitive = true
 }
+
+variable "pm_user_realm" {
+  type = string
+  sensitive = true
+}
 variable "root_fs_image_url" {
   type    = string
   default = "https://cloud-images.ubuntu.com/releases/jammy/release/ubuntu-22.04-server-cloudimg-amd64-root.tar.xz"
