@@ -121,7 +121,7 @@ resource "null_resource" "cloud_init_setup" {
     }
 
     inline = [
-      "sudo bash /var/lib/vz/snippets/${proxmox_virtual_environment_file.startup_hook.file_name} ${proxmox_virtual_environment_container.wg.id}",
+      "bash /var/lib/vz/snippets/${proxmox_virtual_environment_file.startup_hook.file_name} ${proxmox_virtual_environment_container.wg.id}",
       "CONF_FILE=/etc/pve/lxc/${proxmox_virtual_environment_container.wg.id}.conf",
       "grep -q '^lxc.cgroup2.devices.allow = c 10:200 rwm$' $CONF_FILE || echo 'lxc.cgroup2.devices.allow = c 10:200 rwm' | sudo tee -a $CONF_FILE",
       "sudo pct devices ${proxmox_virtual_environment_container.wg.id} | grep -q '/dev/net/tun' || sudo pct set ${proxmox_virtual_environment_container.wg.id} --device /dev/net/tun"
