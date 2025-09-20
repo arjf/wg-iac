@@ -2,11 +2,6 @@
 
 set -eu
 
-if [ -z "${CF_USE-}" ] || [ "$CF_USE" != "true" ]; then
-  echo "Warn: Cloudflared is not enabled. Set CF_USE=true in cloudflared.env to enable." >&2
-  exit 0
-fi
-
 ENV_FILE="cloudflared/cloudflared.env"
 
 if [ ! -f "$ENV_FILE" ]; then
@@ -42,6 +37,11 @@ set -a
 # shellcheck disable=SC1090
 . "$ENV_FILE"
 set +a
+
+if [ -z "${CF_USE-}" ] || [ "$CF_USE" != "true" ]; then
+  echo "Warn: Cloudflared is not enabled. Set CF_USE=true in cloudflared.env to enable." >&2
+  exit 0
+fi
 
 if [ "$dry_run" = true ]; then
     echo "INFO: Dry run, skipping cloudflared start"
