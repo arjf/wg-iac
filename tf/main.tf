@@ -47,6 +47,7 @@ resource "proxmox_virtual_environment_download_file" "cloud_image" {
   node_name    = var.pm_node
   url          = var.root_fs_image_url
   file_name    = var.root_fs_image_name
+  overwrite_unmanaged  = true
 }
 
 resource "proxmox_virtual_environment_file" "cloud_init_config" {
