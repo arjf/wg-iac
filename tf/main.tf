@@ -1,5 +1,4 @@
-resource "proxmox_lxc" "wg" {
-  provider = proxmox-telmate.telmate
+resource "proxmox_virtual_environment_container" "wg" {
 
   depends_on = [
     proxmox_virtual_environment_file.cloud_init_config,
@@ -7,41 +6,57 @@ resource "proxmox_lxc" "wg" {
     proxmox_virtual_environment_file.startup_hook
   ]
 
-  target_node = var.pm_node
-  hostname    = "wg"
-  ostemplate  = "${var.pm_datastore}:vztmpl/${var.root_fs_image_name}"
-  #   password     = // Using ssh keys
+  node_name = var.pm_node
+  initialization {
+
+    hostname    = "wg"
+
+    ip_config {
+      ipv4 {
+        address = "dhcp"
+      }
+      ipv6 {
+        address = "dhcp"
+      }
+    }
+    
+    user_account {
+      keys = [
+        trimspace(data.http.github_ssh_keys.response_body)
+      ]
+      # username     = // Ansible handles
+      # password     = // Using ssh keys
+    }
+  }
+  operating_system {
+      template_file_id  = "${var.pm_datastore}:vztmpl/${var.root_fs_image_name}"
+      type = "ubuntu"
+  }
   unprivileged = true
 
-  // Terraform will crash without rootfs defined
-  rootfs {
-    storage = var.pm_datastore
-    size    = "8G"
+  disk {
+    datastore_id = var.pm_datastore
+    size    = 8
   }
 
-  network {
+  network_interface {
     name   = "eth0"
     bridge = "vmbr0"
-    ip     = "dhcp"
-    ip6    = "dhcp"
   }
 
   features {
     nesting = true
     fuse    = true
-    mount   = "fuse"
+    mount   = ["cifs"]
   }
 
-  onboot = true
+  started = true
 
-  ssh_public_keys = trimspace(data.http.github_ssh_keys.response_body)
-
-  hookscript = "${var.pm_datastore}:snippets/wg-startup-hook.sh"
+  hook_script_file_id = "${var.pm_datastore}:snippets/wg-startup-hook.sh"
 
 }
 
 resource "proxmox_virtual_environment_download_file" "cloud_image" {
-  provider     = proxmox-bgp.bpg
   content_type = "vztmpl"
   datastore_id = var.pm_datastore
   node_name    = var.pm_node
@@ -51,7 +66,6 @@ resource "proxmox_virtual_environment_download_file" "cloud_image" {
 }
 
 resource "proxmox_virtual_environment_file" "cloud_init_config" {
-  provider     = proxmox-bgp.bpg
   content_type = "snippets"
   datastore_id = var.pm_datastore
   node_name    = var.pm_node
@@ -62,7 +76,6 @@ resource "proxmox_virtual_environment_file" "cloud_init_config" {
 }
 
 resource "proxmox_virtual_environment_file" "startup_hook" {
-  provider     = proxmox-bgp.bpg
   content_type = "snippets"
   datastore_id = var.pm_datastore
   node_name    = var.pm_node
