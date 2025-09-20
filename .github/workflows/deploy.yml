@@ -42,8 +42,8 @@ jobs:
 
       - name: Start CF ZTNA proxy
         run: |
-          bash cloudflared/ssh-tunnel.sh
-          
+          bash cloudflared/ssh-tunnel.bash
+
       - name: Terraform Init & Validate
         run: |
           terraform -chdir=tf init
