@@ -34,14 +34,14 @@ resource "proxmox_virtual_environment_file" "startup_hook" {
       echo "[hook] Running cloud-init for container $id"
 
       # Copy cloud-init config
-      pct exec $id -- mkdir -p /var/lib/cloud/seed/nocloud-net
-      pct push $id /var/lib/vz/snippets/${proxmox_virtual_environment_file.cloud_init_config.file_name} /var/lib/cloud/seed/nocloud-net/user-data
+      sudo pct exec $id -- mkdir -p /var/lib/cloud/seed/nocloud-net
+      sudo pct push $id /var/lib/vz/snippets/${proxmox_virtual_environment_file.cloud_init_config.file_name} /var/lib/cloud/seed/nocloud-net/user-data
       
       # Apply CI
-      pct exec $id -- cloud-init clean
-      pct exec $id -- cloud-init init
-      pct exec $id -- cloud-init modules --mode=config
-      pct exec $id -- cloud-init modules --mode=final
+      sudo pct exec $id -- cloud-init clean
+      sudo pct exec $id -- cloud-init init
+      sudo pct exec $id -- cloud-init modules --mode=config
+      sudo pct exec $id -- cloud-init modules --mode=final
     EOT
     file_name = "wg-startup-hook.sh"
   }
@@ -121,10 +121,10 @@ resource "null_resource" "cloud_init_setup" {
     }
 
     inline = [
-      "bash /var/lib/vz/snippets/${proxmox_virtual_environment_file.startup_hook.file_name} ${proxmox_virtual_environment_container.wg.id}",
+      "sudo bash /var/lib/vz/snippets/${proxmox_virtual_environment_file.startup_hook.file_name} ${proxmox_virtual_environment_container.wg.id}",
       "CONF_FILE=/etc/pve/lxc/${proxmox_virtual_environment_container.wg.id}.conf",
-      "grep -q '^lxc.cgroup2.devices.allow = c 10:200 rwm$' $CONF_FILE || echo 'lxc.cgroup2.devices.allow = c 10:200 rwm' >> $CONF_FILE",
-      "pct devices ${proxmox_virtual_environment_container.wg.id} | grep -q '/dev/net/tun' || pct set ${proxmox_virtual_environment_container.wg.id} --device /dev/net/tun"
+      "grep -q '^lxc.cgroup2.devices.allow = c 10:200 rwm$' $CONF_FILE || echo 'lxc.cgroup2.devices.allow = c 10:200 rwm' | sudo tee -a $CONF_FILE",
+      "sudo pct devices ${proxmox_virtual_environment_container.wg.id} | grep -q '/dev/net/tun' || sudo pct set ${proxmox_virtual_environment_container.wg.id} --device /dev/net/tun"
     ]
   }
 }
