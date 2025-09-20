@@ -81,7 +81,12 @@ resource "proxmox_virtual_environment_container" "wg" {
       template_file_id  = "${var.pm_datastore}:vztmpl/${var.root_fs_image_name}"
       type = "ubuntu"
   }
-  unprivileged = true
+  unprivileged = false
+
+  device_passthrough {
+    mode = "0777"
+    path = "/dev/net/tun"
+  }
 
   disk {
     datastore_id = var.pm_datastore
