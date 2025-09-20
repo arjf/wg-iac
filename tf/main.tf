@@ -1,3 +1,52 @@
+resource "proxmox_virtual_environment_download_file" "cloud_image" {
+  content_type = "vztmpl"
+  datastore_id = var.pm_datastore
+  node_name    = var.pm_node
+  url          = var.root_fs_image_url
+  file_name    = var.root_fs_image_name
+  overwrite_unmanaged  = true
+}
+
+resource "proxmox_virtual_environment_file" "cloud_init_config" {
+  content_type = "snippets"
+  datastore_id = var.pm_datastore
+  node_name    = var.pm_node
+
+  source_file {
+    path = "../wg-init.yaml"
+  }
+}
+
+resource "proxmox_virtual_environment_file" "startup_hook" {
+  
+  depends_on = [ proxmox_virtual_environment_file.cloud_init_config ]
+  content_type = "snippets"
+  datastore_id = var.pm_datastore
+  node_name    = var.pm_node
+
+  source_raw {
+    data      = <<-EOT
+      #!/bin/bash
+      sleep 2
+      set -xe
+
+      id=$1
+      echo "[hook] Running cloud-init for container $id"
+
+      # Copy cloud-init config
+      pct exec $id -- mkdir -p /var/lib/cloud/seed/nocloud-net
+      pct push $id /var/lib/vz/snippets/${proxmox_virtual_environment_file.cloud_init_config.file_name} /var/lib/cloud/seed/nocloud-net/user-data
+      
+      # Apply CI
+      pct exec $id -- cloud-init clean
+      pct exec $id -- cloud-init init
+      pct exec $id -- cloud-init modules --mode=config
+      pct exec $id -- cloud-init modules --mode=final
+    EOT
+    file_name = "wg-startup-hook.sh"
+  }
+}
+
 resource "proxmox_virtual_environment_container" "wg" {
 
   depends_on = [
@@ -74,55 +123,6 @@ resource "null_resource" "cloud_init_setup" {
     inline = [
       "bash /var/lib/vz/snippets/${proxmox_virtual_environment_file.startup_hook.file_name} ${proxmox_virtual_environment_container.wg.id}"
     ]
-  }
-}
-
-resource "proxmox_virtual_environment_download_file" "cloud_image" {
-  content_type = "vztmpl"
-  datastore_id = var.pm_datastore
-  node_name    = var.pm_node
-  url          = var.root_fs_image_url
-  file_name    = var.root_fs_image_name
-  overwrite_unmanaged  = true
-}
-
-resource "proxmox_virtual_environment_file" "cloud_init_config" {
-  content_type = "snippets"
-  datastore_id = var.pm_datastore
-  node_name    = var.pm_node
-
-  source_file {
-    path = "../wg-init.yaml"
-  }
-}
-
-resource "proxmox_virtual_environment_file" "startup_hook" {
-  
-  depends_on = [ proxmox_virtual_environment_file.cloud_init_config ]
-  content_type = "snippets"
-  datastore_id = var.pm_datastore
-  node_name    = var.pm_node
-
-  source_raw {
-    data      = <<-EOT
-      #!/bin/bash
-      sleep 2
-      set -xe
-
-      id=$1
-      echo "[hook] Running cloud-init for container $id"
-
-      # Copy cloud-init config
-      pct exec $id -- mkdir -p /var/lib/cloud/seed/nocloud-net
-      pct push $id /var/lib/vz/snippets/${proxmox_virtual_environment_file.cloud_init_config.file_name} /var/lib/cloud/seed/nocloud-net/user-data
-      
-      # Apply CI
-      pct exec $id -- cloud-init clean
-      pct exec $id -- cloud-init init
-      pct exec $id -- cloud-init modules --mode=config
-      pct exec $id -- cloud-init modules --mode=final
-    EOT
-    file_name = "wg-startup-hook.sh"
   }
 }
 
