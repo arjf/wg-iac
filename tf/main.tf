@@ -44,13 +44,8 @@ resource "proxmox_virtual_environment_container" "wg" {
     bridge = "vmbr0"
   }
 
-  features {
-    nesting = true
-    fuse    = true
-    mount   = ["cifs"]
-  }
-
   started = true
+  start_on_boot = true
 
   hook_script_file_id = "${var.pm_datastore}:snippets/wg-startup-hook.sh"
 
