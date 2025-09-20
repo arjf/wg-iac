@@ -25,6 +25,7 @@ provider "proxmox-bgp" {
     node {
       name = var.pm_node
       address = var.pm_ssh_host
+      port = var.pm_ssh_port
     }
   }
 }
