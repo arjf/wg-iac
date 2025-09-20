@@ -22,6 +22,10 @@ provider "proxmox-bgp" {
     agent    = false
     username = var.pm_ssh_user
     private_key = var.pm_ssh_key
+    node {
+      name = var.pm_node
+      address = var.pm_ssh_host
+    }
   }
 }
 

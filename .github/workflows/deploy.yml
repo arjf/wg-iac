@@ -18,8 +18,15 @@ jobs:
           curl -fsSL -o sops "$SOPS_URL"
           chmod +x sops
           sudo mv sops /usr/local/bin/
+      
+      - name: Install Cloudflared
+        run: |
+          curl -fsSL -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /usr/local/bin/cloudflared
+
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
+
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -31,6 +38,11 @@ jobs:
         run: |
           sops -d -i "tf/environments/prod.tfvars"
           sops -d -i "wg-app/config.yaml"
+          sops -d -i "cloudflared/cloudflared.env"
+
+      - name: Start CF ZTNA proxy
+        run: |
+          bash cloudflared/ssh-tunnel.sh
           
       - name: Terraform Init & Validate
         run: |
