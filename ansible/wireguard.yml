@@ -31,28 +31,28 @@
     - name: Setup UFW rules for WireGuard
       ufw:
         rule: allow
-        port: 51820
+        port: "51820"
         proto: udp
         src: any
     
     - name: SSH over v4
       ufw:
         rule: allow
-        port: 22
+        port: "22"
         proto: tcp
         src: "0.0.0.0/0"
 
     - name: wg-portal over v4
       ufw:
         rule: allow
-        port: 8080
+        port: "8080"
         proto: tcp
         src: "0.0.0.0/0"
 
     - name: Enable and reload UFW
       ufw:
         state: enabled
-        reload: yes
+        reloaded: yes
     
     - name: create wg-portal dirs 
       file:
