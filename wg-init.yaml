@@ -6,7 +6,7 @@ users:
     shell: /bin/bash
     lock_passwd: false
     ssh_import_id: 
-      - gh:ajdj
+      - gh:arjf
 
   # Ansible user
   - name: ansible
@@ -15,21 +15,21 @@ users:
     groups: users,admin,wheel,lxd
     sudo: "ALL=(ALL) NOPASSWD:ALL"
     ssh_import_id: 
-      - gh:ajdj
+      - gh:arjf
 
 # Packages and updates
 package_update: true
-package_upgrade: true
+package_upgrade: false
 packages:
   - git
   - python3-pip
   - wireguard
   - wireguard-tools
   - ufw
+  - ansible
 
-# Install Ansible & WG playbook
+# Apply WG playbook
 ansible:
-  install_method: pip
   pull:
     url: "https://github.com/arjf/wg-iac.git"
     playbook_name: "ansible/wireguard.yml"

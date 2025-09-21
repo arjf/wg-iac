@@ -34,9 +34,21 @@ resource "proxmox_virtual_environment_file" "startup_hook" {
       echo "[hook] Running cloud-init for container $id"
 
       # Copy cloud-init config
-      sudo pct exec $id -- mkdir -p /var/lib/cloud/seed/nocloud-net
-      sudo pct push $id /var/lib/vz/snippets/${proxmox_virtual_environment_file.cloud_init_config.file_name} /var/lib/cloud/seed/nocloud-net/user-data
-      
+      sudo pct exec $id -- mkdir -p /var/lib/cloud/seed/nocloud
+      sudo pct push $id /var/lib/vz/snippets/${proxmox_virtual_environment_file.cloud_init_config.file_name} /var/lib/cloud/seed/nocloud/user-data
+      printf 'instance-id: %s\nlocal-hostname: wg\n' "$id" > /tmp/_meta
+      sudo pct push $id /tmp/_meta /var/lib/cloud/seed/nocloud/meta-data
+      rm -f /tmp/_meta
+
+      # Ensure nocloud
+      pudo pct exec "$id" -- /bin/sh -c 'cat > /etc/cloud/cloud.cfg.d/99-lxc.cfg <<EOF
+datasource_list: [ NoCloud ]
+datasource:
+  NoCloud:
+    seedfrom: file:///var/lib/cloud/seed/nocloud
+EOF
+'
+
       # Apply CI
       sudo pct exec $id -- cloud-init clean
       sudo pct exec $id -- cloud-init init
@@ -123,7 +135,7 @@ resource "null_resource" "cloud_init_setup" {
     inline = [
       "bash /var/lib/vz/snippets/${proxmox_virtual_environment_file.startup_hook.file_name} ${proxmox_virtual_environment_container.wg.id}",
       "CONF_FILE=/etc/pve/lxc/${proxmox_virtual_environment_container.wg.id}.conf",
-      "grep -q '^lxc.cgroup2.devices.allow = c 10:200 rwm$' $CONF_FILE || echo 'lxc.cgroup2.devices.allow = c 10:200 rwm' | sudo tee -a $CONF_FILE",
+      "grep -q '^lxc.cgroup2.devices.allow = c 10:200 rwm$' $CONF_FILE || sudo pct set 103 --cgroup2 'lxc.cgroup2.devices.allow=c 10:200 rwm'",
       "sudo pct devices ${proxmox_virtual_environment_container.wg.id} | grep -q '/dev/net/tun' || sudo pct set ${proxmox_virtual_environment_container.wg.id} --device /dev/net/tun"
     ]
   }
