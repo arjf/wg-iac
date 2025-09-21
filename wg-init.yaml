@@ -30,6 +30,7 @@ packages:
 
 # Apply WG playbook
 ansible:
+  install_method: distro
   pull:
     url: "https://github.com/arjf/wg-iac.git"
     playbook_name: "ansible/wireguard.yml"
