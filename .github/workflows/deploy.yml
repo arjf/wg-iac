@@ -59,7 +59,8 @@ jobs:
           terraform -chdir=tf validate
           terraform -chdir=tf plan -var-file=environments/prod.tfvars
           terraform -chdir=tf apply -var-file=environments/prod.tfvars -auto-approve
-          echo "container_id=$(terraform -chdir=tf output -raw container_id)" >> $GITHUB_OUTPUT
+          CONTAINER_ID=$(terraform -chdir=tf output -raw container_id | grep -v '^::' | tail -n 1)
+          echo "container_id=$CONTAINER_ID" >> $GITHUB_OUTPUT
 
       - name: Get container IP
         id: container_ip
