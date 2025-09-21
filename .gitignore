@@ -26,3 +26,5 @@ terraform.rc
 *.retry
 *.log
 *.pub
+
+logs/

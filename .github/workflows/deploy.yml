@@ -10,9 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Install latest SOPS
+      - name: Install latest SOPS & ansible
         run: |
-          # sudo apt-get update && sudo apt-get install -y jq curl // This stuff is preinstalled
+          sudo apt-get update && sudo apt-get install -y jq curl ansible
           # Fetch the latest release download URL for linux amd64
           SOPS_URL=$(curl -s https://api.github.com/repos/getsops/sops/releases/latest \
             | jq -r '.assets[] | select(.name | test("sops-.*.linux.amd64$")) | .browser_download_url')
@@ -40,6 +40,13 @@ jobs:
           sops -d -i "tf/environments/prod.tfvars"
           sops -d -i "wg-app/config.yaml"
           sops -d -i "cloudflared/cloudflared.env"
+          sops -d -i "terraform.key"
+
+      - name: Generate ssh-key for ansible
+        run: |
+          ssh-keygen -t ed25519 -f /tmp/deploy_key -N "" -C "wg-deployment-$(date +%s)"
+          sed -i "s|DEPLOYMENT_SSH_KEY_PLACEHOLDER|$(cat /tmp/deploy_key.pub)|" wg-init.yaml
+          chmod 600 /tmp/deploy_key
 
       - name: Start CF ZTNA proxy
         run: |
@@ -51,3 +58,34 @@ jobs:
           terraform -chdir=tf validate
           terraform -chdir=tf plan -var-file=environments/prod.tfvars
           terraform -chdir=tf apply -var-file=environments/prod.tfvars -auto-approve
+
+      - name: Get container IP from Terraform
+        id: container_ip
+        run: |
+          cd tf
+          echo "ip=$(terraform output -json container_ipv4_addresses | jq -r '.[0]')" >> $GITHUB_OUTPUT
+
+      - name: Apply Ansible playbook 
+        run: |
+          source "cloudflared/cloudflared.env"
+          cat << EOF > /tmp/ssh_config
+          Host proxmox-jump
+              HostName localhost
+              Port ${CF_LOCAL_PORT:-1080}
+              User terraform
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+              IdentityFile terraform.key
+          
+          Host wg-container
+              HostName ${{ steps.container_ip.outputs.ip }}
+              User ansible
+              ProxyJump proxmox-jump
+              IdentityFile /tmp/deploy_key
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+          EOF
+          ansible-playbook \
+            -i wg-container, \
+            --ssh-common-args="-F /tmp/ssh_config" \
+            ansible/wireguard.yml
