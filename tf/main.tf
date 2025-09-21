@@ -52,6 +52,7 @@ EOF
       # Apply CI
       sudo pct exec $id -- cloud-init clean --logs
       sudo pct exec $id -- cloud-init init --local
+      sudo pct exec $id -- cloud-init init
       sudo pct exec $id -- cloud-init modules --mode=config
       sudo pct exec $id -- cloud-init modules --mode=final
     EOT
@@ -134,8 +135,8 @@ resource "null_resource" "cloud_init_setup" {
 
     inline = [
       "bash /var/lib/vz/snippets/${proxmox_virtual_environment_file.startup_hook.file_name} ${proxmox_virtual_environment_container.wg.id}",
-      "sudo pct set ${proxmox_virtual_environment_container.wg.id} --cgroup2 'lxc.cgroup2.devices.allow=c 10:200 rwm'",
-      "sudo pct set ${proxmox_virtual_environment_container.wg.id} --device /dev/net/tun"
+      "echo 'lxc.cgroup2.devices.allow = c 10:200 rwm' | sudo tee /etc/pve/lxc/${proxmox_virtual_environment_container.wg.id}.conf -a",
+      "echo 'lxc.mount.entry = /dev/net/tun dev/net/tun none bind,create=file' | sudo tee /etc/pve/lxc/${proxmox_virtual_environment_container.wg.id}.conf -a"
     ]
   }
 }
