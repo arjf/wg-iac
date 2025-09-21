@@ -31,7 +31,6 @@
     - name: Setup UFW rules for WireGuard
       ufw:
         rule: allow
-        name: "WireGuard"
         port: 51820
         proto: udp
         src: any
@@ -39,7 +38,6 @@
     - name: SSH over v4
       ufw:
         rule: allow
-        name: OpenSSH
         port: 22
         proto: tcp
         src: "0.0.0.0/0"
@@ -47,7 +45,6 @@
     - name: wg-portal over v4
       ufw:
         rule: allow
-        name: wg-portal-web
         port: 8080
         proto: tcp
         src: "0.0.0.0/0"
