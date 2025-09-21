@@ -49,10 +49,12 @@
         proto: tcp
         src: "0.0.0.0/0"
 
-    - name: Enable and reload UFW
+    - name: Enable UFW
       ufw:
         state: enabled
-        reloaded: yes
+    - name: Reload UFW
+      ufw:
+        state: reloaded
     
     - name: create wg-portal dirs 
       file:
