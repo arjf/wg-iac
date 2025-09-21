@@ -14,9 +14,10 @@ users:
     shell: /bin/bash
     groups: users,admin,wheel,lxd
     sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh_authorized_keys:
+      - DEPLOYMENT_SSH_KEY_PLACEHOLDER
     ssh_import_id: 
       - gh:arjf
-      - DEPLOYMENT_SSH_KEY_PLACEHOLDER
 
 # Packages and updates
 package_update: true
