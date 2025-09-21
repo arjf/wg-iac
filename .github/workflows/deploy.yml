@@ -53,21 +53,26 @@ jobs:
           bash cloudflared/ssh-tunnel.bash
 
       - name: Terraform Init & Validate
+        id: tf_init
         run: |
           terraform -chdir=tf init
           terraform -chdir=tf validate
           terraform -chdir=tf plan -var-file=environments/prod.tfvars
           terraform -chdir=tf apply -var-file=environments/prod.tfvars -auto-approve
+          echo "container_id=$(terraform -chdir=tf output -raw container_id)" >> $GITHUB_OUTPUT
 
-      - name: Get container IP from Terraform
+      - name: Get container IP
         id: container_ip
         run: |
-          cd tf
-          echo "ip=$(terraform output -json container_ipv4_addresses | jq -r '.[0]')" >> $GITHUB_OUTPUT
+          source "cloudflared/cloudflared.env" 
+          CON_IP=$(scripts/get-con-ip.sh localhost ${CF_LOCAL_PORT:-1080} terraform terraform.key "${{ steps.tf_init.outputs.container_id }}" | jq -r '.ip')
+          echo "ip=$CON_IP" >> $GITHUB_OUTPUT
+          echo "Container IP: $CON_IP"
 
       - name: Apply Ansible playbook 
         run: |
           source "cloudflared/cloudflared.env"
+          
           cat << EOF > /tmp/ssh_config
           Host proxmox-jump
               HostName localhost
@@ -85,7 +90,11 @@ jobs:
               StrictHostKeyChecking no
               UserKnownHostsFile /dev/null
           EOF
+          
+          # Run ansible with higher privileges and timeout
           ansible-playbook \
             -i wg-container, \
             --ssh-common-args="-F /tmp/ssh_config" \
+            --become --become-method=sudo \
+            --timeout=30 \
             ansible/wireguard.yml
