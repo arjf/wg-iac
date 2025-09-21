@@ -41,7 +41,7 @@ resource "proxmox_virtual_environment_file" "startup_hook" {
       rm -f /tmp/_meta
 
       # Ensure nocloud
-      pudo pct exec "$id" -- /bin/sh -c 'cat > /etc/cloud/cloud.cfg.d/99-lxc.cfg <<EOF
+      sudo pct exec "$id" -- /bin/sh -c 'cat > /etc/cloud/cloud.cfg.d/99-lxc.cfg <<EOF
 datasource_list: [ NoCloud ]
 datasource:
   NoCloud:
@@ -134,9 +134,8 @@ resource "null_resource" "cloud_init_setup" {
 
     inline = [
       "bash /var/lib/vz/snippets/${proxmox_virtual_environment_file.startup_hook.file_name} ${proxmox_virtual_environment_container.wg.id}",
-      "CONF_FILE=/etc/pve/lxc/${proxmox_virtual_environment_container.wg.id}.conf",
-      "grep -q '^lxc.cgroup2.devices.allow = c 10:200 rwm$' $CONF_FILE || sudo pct set 103 --cgroup2 'lxc.cgroup2.devices.allow=c 10:200 rwm'",
-      "sudo pct devices ${proxmox_virtual_environment_container.wg.id} | grep -q '/dev/net/tun' || sudo pct set ${proxmox_virtual_environment_container.wg.id} --device /dev/net/tun"
+      "sudo pct set ${proxmox_virtual_environment_container.wg.id} --cgroup2 'lxc.cgroup2.devices.allow=c 10:200 rwm",
+      "sudo pct set ${proxmox_virtual_environment_container.wg.id} --device /dev/net/tun"
     ]
   }
 }
