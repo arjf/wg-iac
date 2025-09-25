@@ -10,16 +10,39 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Install latest SOPS & ansible
+
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      # - name: Debug 
+      #   run: |
+      #     pwd
+      #     echo ls pwd: ; ls
+      #     echo ls: ; ls ..
+      #     echo tree: ; find . -path './.git' -prune -o -print | sed -e 's;[^/]*/;|___;g;s;___|; |;g'
+
+      - name: Import PGP key
         run: |
-          sudo apt-get update && sudo apt-get install -y jq curl ansible
+          echo "${{ secrets.PGP_PRIVATE_KEY }}" | gpg --import
+  
+      - name: Decrypt secrets via SOPS
+        run: |
           # Fetch the latest release download URL for linux amd64
           SOPS_URL=$(curl -s https://api.github.com/repos/getsops/sops/releases/latest \
             | jq -r '.assets[] | select(.name | test("sops-.*.linux.amd64$")) | .browser_download_url')
           curl -fsSL -o sops "$SOPS_URL"
           chmod +x sops
           sudo mv sops /usr/local/bin/
+          sops -d -i "tf/environments/prod.tfvars"
+          sops -d -i "wg-app/config.yaml"
+          sops -d -i "cloudflared/cloudflared.env"
+          sops -d -i "terraform.key"        
 
+      - name: Install ansible & tools
+        run: |
+          python3 -m pip install --user ansible
+          sudo apt-get update && sudo apt-get install -y jq curl iproute2
+          
       - name: Install Cloudflared
         run: |
           curl -fsSL -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
@@ -28,19 +51,6 @@ jobs:
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
 
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Import PGP key
-        run: |
-          echo "${{ secrets.PGP_PRIVATE_KEY }}" | gpg --import
-
-      - name: Decrypt secrets
-        run: |
-          sops -d -i "tf/environments/prod.tfvars"
-          sops -d -i "wg-app/config.yaml"
-          sops -d -i "cloudflared/cloudflared.env"
-          sops -d -i "terraform.key"
 
       - name: Generate ssh-key for ansible
         run: |
@@ -59,14 +69,14 @@ jobs:
           terraform -chdir=tf validate
           terraform -chdir=tf plan -var-file=environments/prod.tfvars
           terraform -chdir=tf apply -var-file=environments/prod.tfvars -auto-approve
-          CONTAINER_ID=$(terraform -chdir=tf output -raw container_id | grep -v '^::' | tail -n 1)
+          CONTAINER_ID=$(terraform -chdir=tf output -raw container_id)
           echo "container_id=$CONTAINER_ID" >> $GITHUB_OUTPUT
 
       - name: Get container IP
         id: container_ip
         run: |
           source "cloudflared/cloudflared.env" 
-          CON_IP=$(scripts/get-con-ip.sh localhost ${CF_LOCAL_PORT:-1080} terraform terraform.key "${{ steps.tf_init.outputs.container_id }}" | jq -r '.ip')
+          CON_IP=$(scripts/get-con-ip.sh localhost ${CF_LOCAL_PORT:-1080} terraform terraform.key "${{ steps.tf_init.outputs.container_id }}")
           echo "ip=$CON_IP" >> $GITHUB_OUTPUT
           echo "Container IP: $CON_IP"
 
@@ -92,8 +102,15 @@ jobs:
               UserKnownHostsFile /dev/null
           EOF
           
+          chmod 600 terraform.key
+
+          if [[ -z "$CON_IP" ]]; then 
+            echo "Failed to get container IP"
+            exit 1
+          fi
+
           # Run ansible with higher privileges and timeout
-          ansible-playbook \
+          /root/.local/bin/ansible-playbook \
             -i wg-container, \
             --ssh-common-args="-F /tmp/ssh_config" \
             --become --become-method=sudo \
