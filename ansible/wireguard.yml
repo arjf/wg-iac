@@ -1,68 +1,68 @@
 ---
 - name: Setup wireguard in a lxc
-  hosts: localhost
+  hosts: wg-container
   remote_user: ansible
 
   tasks:
     - name: Enable IPv4 forwarding
-      sysctl:
+      ansible.posix.sysctl:
         name: net.ipv4.ip_forward
         value: '1'
         state: present
-        reload: yes
-        sysctl_set: yes
+        reload: true
+        sysctl_set: true
 
     - name: Enable IPv6 forwarding
-      sysctl:
+      ansible.posix.sysctl:
         name: net.ipv6.conf.all.forwarding
         value: '1'
         state: present
-        reload: yes
-        sysctl_set: yes
+        reload: true
+        sysctl_set: true
 
     - name: Ensure UFW default policies are set
-      ufw:
+      community.general.ufw:
         direction: "{{ item.direction }}"
         policy: "{{ item.policy }}"
-      with_items:
-        - { direction: 'incoming', policy: 'deny' } 
+      loop:
+        - { direction: 'incoming', policy: 'deny' }
         - { direction: 'outgoing', policy: 'allow' }
-    
+
     - name: Setup UFW rules for WireGuard
-      ufw:
+      community.general.ufw:
         rule: allow
         port: "51820"
         proto: udp
         src: any
-    
+
     - name: SSH over v4
-      ufw:
+      community.general.ufw:
         rule: allow
         port: "22"
         proto: tcp
         src: "0.0.0.0/0"
 
-    - name: wg-portal over v4
-      ufw:
+    - name: WG-portal over v4
+      community.general.ufw:
         rule: allow
         port: "8080"
         proto: tcp
         src: "0.0.0.0/0"
 
     - name: Enable UFW
-      ufw:
+      community.general.ufw:
         state: enabled
     - name: Reload UFW
-      ufw:
+      community.general.ufw:
         state: reloaded
-    
-    - name: create wg-portal dirs 
-      file:
-        path:  "{{ item }}"
-        state: directory 
+
+    - name: Create wg-portal dirs
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
         mode: '0755'
-        owner: root 
-        group: root 
+        owner: root
+        group: root
       loop:
         - /opt/wg-portal
         - /var/lib/wg-portal/data
@@ -70,37 +70,37 @@
         - /opt/wg-portal/config
 
     - name: Get wg-portal binary
-      get_url:
+      ansible.builtin.get_url:
         url: "https://github.com/h44z/wg-portal/releases/latest/download/wg-portal_linux_amd64"
         dest: /opt/wg-portal/wg-portal
         mode: '0755'
         owner: root
         group: root
-  
-    - name: cp wg-portal config
-      copy: 
+
+    - name: Copy wg-portal config
+      ansible.builtin.copy:
         src: "../wg-app/config.yaml"
-        dest: /opt/wg-portal/config/config.yaml 
-        owner:  root
+        dest: /opt/wg-portal/config/config.yaml
+        owner: root
         mode: '0600'
 
-    - name: Install systemd service 
-      copy:
+    - name: Install systemd service
+      ansible.builtin.copy:
         src: "../wg-app/wg-portal.service"
         dest: /etc/systemd/system/wg-portal.service
         mode: '0644'
-        owner: root 
+        owner: root
       notify:
-        - reload systemd 
+        - reload systemd
         - start wg-portal
-    
+
   handlers:
-    - name: reload systemd 
-      systemd:
-        daemon_reload: yes 
-    
-    - name: start wg-portal
-      systemd:
-        name: wg-portal 
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Start wg-portal
+      ansible.builtin.systemd:
+        name: wg-portal
         state: started
-        enabled: yes
+        enabled: true

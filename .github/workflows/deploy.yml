@@ -14,12 +14,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      # - name: Debug 
-      #   run: |
-      #     pwd
-      #     echo ls pwd: ; ls
-      #     echo ls: ; ls ..
-      #     echo tree: ; find . -path './.git' -prune -o -print | sed -e 's;[^/]*/;|___;g;s;___|; |;g'
+      - name: Debug 
+        run: |
+          pwd
+          echo ls pwd: ; ls
+          echo ls: ; ls ..
+          echo tree: ; find . -path './.git' -prune -o -print | sed -e 's;[^/]*/;|___;g;s;___|; |;g'
 
       - name: Import PGP key
         run: |
@@ -40,7 +40,7 @@ jobs:
 
       - name: Install ansible & tools
         run: |
-          python3 -m pip install --user ansible
+          python3 -m pip install --user ansible ansible-dev-tools ansible-lint
           sudo apt-get update && sudo apt-get install -y jq curl iproute2
           
       - name: Install Cloudflared
@@ -69,20 +69,31 @@ jobs:
           terraform -chdir=tf validate
           terraform -chdir=tf plan -var-file=environments/prod.tfvars
           terraform -chdir=tf apply -var-file=environments/prod.tfvars -auto-approve
-          CONTAINER_ID=$(terraform -chdir=tf output -raw container_id)
-          echo "container_id=$CONTAINER_ID" >> $GITHUB_OUTPUT
+          
+          terraform -chdir=tf output -json container_id | jq -r > /tmp/con_id
+          CONTAINER_ID=$(cat /tmp/con_id)
+          terraform -chdir=tf output -json container_ipv4_addresses | jq -r "to_entries[0].value" > /tmp/con_ip
+          CONTAINER_IP=$(cat /tmp/con_ip)
+          
+          echo "DEBUG: containerip: $CONTAINER_IP"
+          echo "DEBUG: containerid: $CONTAINER_ID"
 
-      - name: Get container IP
-        id: container_ip
-        run: |
-          source "cloudflared/cloudflared.env" 
-          CON_IP=$(scripts/get-con-ip.sh localhost ${CF_LOCAL_PORT:-1080} terraform terraform.key "${{ steps.tf_init.outputs.container_id }}")
-          echo "ip=$CON_IP" >> $GITHUB_OUTPUT
-          echo "Container IP: $CON_IP"
+          echo "CONTAINER_ID=$CONTAINER_ID" >> "$GITHUB_OUTPUT"
+          echo "CONTAINER_IP=$CONTAINER_IP" >> "$GITHUB_OUTPUT"
 
-      - name: Apply Ansible playbook 
+      - name: Apply Ansible playbook
+        env:
+          CON_ID=${{ steps.tf_init.outputs.CONTAINER_ID }}
+          CON_IP=${{ steps.tf_init.outputs.CONTAINER_IP }}
         run: |
           source "cloudflared/cloudflared.env"
+          if [ -z "$CON_IP" ]; then
+            echo "Terraform didnt provide an IP, falling back to script"
+            CON_IP=$(scripts/get-con-ip.sh localhost ${CF_LOCAL_PORT:-1080} terraform terraform.key $CON_ID)
+          fi
+          echo "Container IP: $CON_IP"
+          chmod 600 terraform.key
+          chmod 600 /tmp/deploy_key
           
           cat << EOF > /tmp/ssh_config
           Host proxmox-jump
@@ -94,25 +105,15 @@ jobs:
               IdentityFile terraform.key
           
           Host wg-container
-              HostName ${{ steps.container_ip.outputs.ip }}
+              HostName $CON_IP
               User ansible
               ProxyJump proxmox-jump
               IdentityFile /tmp/deploy_key
               StrictHostKeyChecking no
               UserKnownHostsFile /dev/null
           EOF
-          
-          chmod 600 terraform.key
 
-          if [[ -z "$CON_IP" ]]; then 
-            echo "Failed to get container IP"
-            exit 1
-          fi
-
-          # Run ansible with higher privileges and timeout
-          /root/.local/bin/ansible-playbook \
-            -i wg-container, \
-            --ssh-common-args="-F /tmp/ssh_config" \
-            --become --become-method=sudo \
-            --timeout=30 \
-            ansible/wireguard.yml
+          export ANSIBLE_HOST_KEY_CHECKING=False     
+          export PATH="$HOME/.local/bin:$PATH"
+          ansible-galaxy collection install -r ansible/requirements.yml
+          ansible-playbook -i wg-container, --ssh-common-args="-F /tmp/ssh_config" ansible/wireguard.yml
